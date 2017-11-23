@@ -1,18 +1,20 @@
 package server
 
 import (
+	"fmt"
 	"log"
 	"os"
 
+	"github.com/jessevdk/go-flags"
 	"github.com/soopsio/ssh"
 )
 
 type scpOptions struct {
-	To           bool
-	From         bool
-	TargetIsDir  bool
-	Recursive    bool
-	PreserveMode bool
+	To           bool `short:"t"`
+	From         bool `short:"f"`
+	TargetIsDir  bool `short:"d"`
+	Recursive    bool `short:"r"`
+	PreserveMode bool `short:"p"`
 	fileNames    []string
 }
 
@@ -63,37 +65,42 @@ func (config scpConfig) scpServerStart(s ssh.Session) {
 	// DOCUMENTED scp OPTIONS:
 	//  -r: Recursively copy entire directories (follows symlinks)
 	//  -p: Preserve modification mtime, atime and mode of files
-	parseOpts := true
-	opts.fileNames = make([]string, 0)
-	for _, elem := range s.Command()[1:] {
-		if parseOpts {
-			switch elem {
-			case "-f":
-				opts.From = true
-			case "-t":
-				opts.To = true
-			case "-d":
-				opts.TargetIsDir = true
-			case "-p":
-				opts.PreserveMode = true
-			case "-r":
-				opts.Recursive = true
-			case "-v":
-			case "-q":
-				// Verbose mode, this is more of a local client thing
-			case "--":
-				// After finding a "--" we stop parsing for flags
-				if parseOpts {
-					parseOpts = false
-				} else {
-					opts.fileNames = append(opts.fileNames, elem)
-				}
-			default:
-				opts.fileNames = append(opts.fileNames, elem)
-			}
-		}
+	// parseOpts := true
+	// opts.fileNames = make([]string, 0)
+	// for _, elem := range s.Command()[1:] {
+	// 	if parseOpts {
+	// 		switch elem {
+	// 		case "-f":
+	// 			opts.From = true
+	// 		case "-t":
+	// 			opts.To = true
+	// 		case "-d":
+	// 			opts.TargetIsDir = true
+	// 		case "-p":
+	// 			opts.PreserveMode = true
+	// 		case "-r":
+	// 			opts.Recursive = true
+	// 		case "-v":
+	// 		case "-q":
+	// 			// Verbose mode, this is more of a local client thing
+	// 		case "--":
+	// 			// After finding a "--" we stop parsing for flags
+	// 			if parseOpts {
+	// 				parseOpts = false
+	// 			} else {
+	// 				opts.fileNames = append(opts.fileNames, elem)
+	// 			}
+	// 		default:
+	// 			opts.fileNames = append(opts.fileNames, elem)
+	// 		}
+	// 	}
+	// }
+	args, err := flags.ParseArgs(&opts, s.Command()[1:])
+	if err != nil {
+		log.Println("Parse opts error: ", err)
 	}
-
+	fmt.Println(len(args), args, opts)
+	opts.fileNames = args
 	log.Printf("Called scp with %v", s.Command()[1:])
 	log.Printf("Options: %v", opts)
 	log.Printf("Filenames: %v", opts.fileNames)

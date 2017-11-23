@@ -41,6 +41,10 @@ func receiveControlMsg(s ssh.Session) (controlMessage, error) {
 	ctrlmsg.msgType = string(ctrlmsgbuf[0])
 
 	ctrlmsglist := strings.Split(string(ctrlmsgbuf[:nread]), " ")
+
+	if len(ctrlmsglist) > 3 {
+		ctrlmsglist = ctrlmsglist[:3]
+	}
 	log.Printf("%v", ctrlmsglist)
 
 	// Make sure control message is valid
@@ -127,6 +131,7 @@ func (c scpConfig) receiveFileContents(s ssh.Session, dirStack []string, msgctrl
 		return err
 	}
 	defer f.Close()
+	fmt.Println("msgctrl.size", msgctrl)
 	nread, err := io.CopyN(f, s, int64(msgctrl.size))
 	log.Printf("Transferred %d bytes", nread)
 	if err != nil {
@@ -208,7 +213,6 @@ func (config scpConfig) startSCPSink(s ssh.Session, opts scpOptions) error {
 	}
 
 	var dirStack []string
-
 	if opts.TargetIsDir {
 		err := createDir(absTarget)
 		if err != nil {
