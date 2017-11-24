@@ -93,7 +93,7 @@ func sendFileTimes(fi os.FileInfo, s ssh.Session) error {
 		return errors.New("Not in a unix system, not sure what to do")
 	}
 
-	msg := fmt.Sprintf("T%d 0 %d 0\n", getLastModification(f), getLastAccess(f))
+	msg := fmt.Sprintf("T%d 0 %d 0\n", getLastModification(f).Sec, getLastAccess(f).Sec)
 	err := sendSCPControlMsg(msg, s)
 	return err
 }

@@ -45,6 +45,7 @@ func (s *sourceProtocol) WriteFile(fileInfo *FileInfo, body io.ReadCloser) error
 			return err
 		}
 	}
+
 	return s.writeFile(fileInfo.mode, fileInfo.size, fileInfo.name, body)
 }
 
@@ -78,7 +79,7 @@ func toSecondsAndMicroseconds(t time.Time) (seconds int64, microseconds int) {
 }
 
 func (s *sourceProtocol) writeFile(mode os.FileMode, length int64, filename string, body io.ReadCloser) error {
-	header := fmt.Sprintf("%c%#4o %d %s\n ", msgCopyFile, mode&os.ModePerm, length, filepath.Base(filename))
+	header := fmt.Sprintf("%c%#4o %d %s\n", msgCopyFile, mode&os.ModePerm, length, filepath.Base(filename))
 	_, err := fmt.Fprintf(s.remIn, header)
 	if err != nil {
 		return fmt.Errorf("failed to write scp file header: err=%s", err)
@@ -128,7 +129,9 @@ func (s *sourceProtocol) endDirectory() error {
 func (s *sourceProtocol) readReply() error {
 	b, err := s.remReader.ReadByte()
 	if err != nil {
-		return fmt.Errorf("failed to read scp reply type: err=%s", err)
+		if err != io.EOF {
+			return fmt.Errorf("failed to read scp reply type: err=%s", err)
+		}
 	}
 
 	if b == replyOK {
@@ -202,7 +205,7 @@ func (s *sinkProtocol) ReadHeaderOrReply() (interface{}, error) {
 	switch b {
 	case msgCopyFile:
 		var h fileMsgHeader
-		n, err := fmt.Fscanf(s.remReader, "%04o %d %s \n", &h.Mode, &h.Size, &h.Name)
+		n, err := fmt.Fscanf(s.remReader, "%04o %d %s\n", &h.Mode, &h.Size, &h.Name)
 		if err != nil {
 			return nil, fmt.Errorf("failed to read scp file message header: err=%s", err)
 		}
@@ -219,7 +222,7 @@ func (s *sinkProtocol) ReadHeaderOrReply() (interface{}, error) {
 	case msgStartDirectory:
 		var h startDirectoryMsgHeader
 		var dummySize int64
-		n, err := fmt.Fscanf(s.remReader, "%04o %d %s \n", &h.Mode, &dummySize, &h.Name)
+		n, err := fmt.Fscanf(s.remReader, "%04o %d %s\n", &h.Mode, &dummySize, &h.Name)
 		if err != nil {
 			return nil, fmt.Errorf("failed to read scp start directory message header: err=%s", err)
 		}

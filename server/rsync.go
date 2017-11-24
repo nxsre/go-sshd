@@ -15,6 +15,8 @@ func rsyncStart(s ssh.Session) {
 	defer s.Exit(exitCode)
 
 	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	cmd := exec.CommandContext(ctx, s.Command()[0], s.Command()[1:]...)
 	stdout, _ := cmd.StdoutPipe()
 	stderr, _ := cmd.StderrPipe()
@@ -25,7 +27,6 @@ func rsyncStart(s ssh.Session) {
 		log.Println("rsync start failed:", err)
 		return
 	}
-	defer cancel()
 
 	go io.Copy(s, stdout)
 	go io.Copy(s.Stderr(), stderr)

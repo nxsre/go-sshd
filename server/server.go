@@ -7,8 +7,8 @@ import (
 	"github.com/soopsio/ssh"
 )
 
-var (
-	sshHandler = func(s ssh.Session) {
+func NewSshServer() *ssh.Server {
+	sshHandler := func(s ssh.Session) {
 		if s.Subsystem("sftp") {
 			sftpServerStart(s)
 		} else {
@@ -30,24 +30,20 @@ var (
 
 	}
 
-	passHandler = func(ctx ssh.Context, password string) bool {
+	passHandler := func(ctx ssh.Context, password string) bool {
 		fmt.Println("密码验证请求:", ctx, password)
 		return true
 	}
 
-	connCallback = func(net net.Conn) net.Conn {
+	connCallback := func(net net.Conn) net.Conn {
 
 		return net
 	}
 
-	s = &ssh.Server{
+	return &ssh.Server{
 		Addr:            ":2222",
 		Handler:         sshHandler,
 		PasswordHandler: passHandler,
 		ConnCallback:    connCallback,
 	}
-)
-
-func Start() error {
-	return s.ListenAndServe()
 }

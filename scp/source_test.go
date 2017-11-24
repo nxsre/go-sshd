@@ -19,8 +19,9 @@ import (
 	"testing"
 	"time"
 
-	scp "github.com/hnakamur/go-scp"
-	sshd "github.com/hnakamur/go-sshd"
+	scp "github.com/soopsio/go-sshd/scp"
+	"github.com/soopsio/go-sshd/server"
+	sshd "github.com/soopsio/ssh"
 	"golang.org/x/crypto/ssh"
 )
 
@@ -397,14 +398,20 @@ var (
 )
 
 func newTestSshdServer() (*sshd.Server, net.Listener, error) {
-	config := &ssh.ServerConfig{
-		PasswordCallback: func(c ssh.ConnMetadata, pass []byte) (*ssh.Permissions, error) {
-			if c.User() == testSshdUser && string(pass) == testSshdPassword {
-				return nil, nil
-			}
-			return nil, fmt.Errorf("password rejected for %q", c.User())
-		},
+	passHandler := func(ctx sshd.Context, password string) bool {
+		// fmt.Println("密码验证请求:", ctx.User(), password)
+		if ctx.User() == testSshdUser && password == testSshdPassword {
+			return true
+		}
+		return false
 	}
+
+	publickeyHandler := func(ctx sshd.Context, key sshd.PublicKey) bool {
+		authorizedKey := ssh.MarshalAuthorizedKey(key)
+		_ = authorizedKey
+		return true
+	}
+
 	testSshdKey, err := generateTestSshdKey()
 	if err != nil {
 		return nil, nil, err
@@ -414,14 +421,17 @@ func newTestSshdServer() (*sshd.Server, net.Listener, error) {
 		return nil, nil, err
 	}
 
-	config.AddHostKey(private)
-
-	server := sshd.NewServer(testSshdShell, config, nil)
 	l, err := net.Listen("tcp", ":0")
 	if err != nil {
 		return nil, nil, err
 	}
-	return server, l, err
+
+	s := server.NewSshServer()
+	s.HostSigners = []sshd.Signer{private}
+	s.PasswordHandler = passHandler
+	s.PublicKeyHandler = publickeyHandler
+
+	return s, l, err
 }
 
 func generateTestSshdKey() ([]byte, error) {
@@ -442,6 +452,9 @@ func newTestSshClient(addr string) (*ssh.Client, error) {
 	config := &ssh.ClientConfig{
 		User: testSshdUser,
 		Auth: []ssh.AuthMethod{ssh.Password(testSshdPassword)},
+		HostKeyCallback: func(hostname string, remote net.Addr, key ssh.PublicKey) error {
+			return nil
+		},
 	}
 
 	return ssh.Dial("tcp", addr, config)

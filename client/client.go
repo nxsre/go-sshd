@@ -23,15 +23,19 @@ func SSH(user, password, ip_port string) {
 			return nil
 		},
 	}
+	log.Println("登录服务器")
 	client, err := ssh.Dial("tcp", ip_port, &Conf)
 	if err != nil {
 		log.Fatalln(err)
 	}
 	defer client.Close()
+
+	log.Println("发送文件")
 	if err := scp.NewSCP(client).SendFile("./test.sh", "/mnt"); err != nil {
 		log.Fatalln(err)
 	}
 
+	log.Println("执行脚本")
 	func() {
 		if session, err := client.NewSession(); err == nil {
 			defer session.Close()
@@ -49,4 +53,6 @@ func SSH(user, password, ip_port string) {
 			log.Fatalln("获取 session 失败", err)
 		}
 	}()
+	err = scp.NewSCP(client).ReceiveFile("/mnt/test.sh", "./test_1111.sh")
+	log.Println(err)
 }

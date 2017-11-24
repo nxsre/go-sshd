@@ -15,7 +15,8 @@ func main() {
 		log.Println(http.ListenAndServe(":8080", nil))
 	}()
 
-	err := sshd.Start()
+	s := sshd.NewSshServer()
+	err := s.ListenAndServe()
 	if err != nil {
 		log.Fatalln(err)
 	}

@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	scp "github.com/hnakamur/go-scp"
+	scp "github.com/soopsio/go-sshd/scp"
 )
 
 func TestReceiveFile(t *testing.T) {
