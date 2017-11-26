@@ -63,9 +63,7 @@ func (s *SCP) ReceiveFile(srcFile, destFile string) error {
 	}
 
 	return runSinkSession(s.client, srcFile, false, "", false, true, func(s *sinkSession) error {
-		fmt.Println("ttttttttttttttttt")
 		h, err := s.ReadHeaderOrReply()
-		fmt.Println("vvvvvvvvvvvvvvv")
 		if err != nil {
 			return fmt.Errorf("failed to read scp message header: err=%s", err)
 		}

@@ -67,6 +67,7 @@ func (s *sourceProtocol) setTime(mtime, atime time.Time) error {
 	ms, mus := toSecondsAndMicroseconds(mtime)
 	as, aus := toSecondsAndMicroseconds(atime)
 	_, err := fmt.Fprintf(s.remIn, "%c%d %d %d %d\n", msgTime, ms, mus, as, aus)
+
 	if err != nil {
 		return fmt.Errorf("failed to write scp time header: err=%s", err)
 	}
@@ -99,6 +100,11 @@ func (s *sourceProtocol) writeFile(mode os.FileMode, length int64, filename stri
 	body.Close()
 	if err != nil {
 		return fmt.Errorf("failed to write scp file body: err=%s", err)
+	}
+
+	err = s.readReply()
+	if err != nil {
+		return err
 	}
 
 	_, err = s.remIn.Write([]byte{replyOK})
@@ -215,7 +221,7 @@ func (s *sinkProtocol) ReadHeaderOrReply() (interface{}, error) {
 
 		err = s.WriteReplyOK()
 		if err != nil {
-			return nil, fmt.Errorf("failed to write scp replyOK reply: err=%s", err)
+			return nil, fmt.Errorf("failed to write scp replyOK reply in msgCopyFile: err=%s", err)
 		}
 
 		return h, nil
@@ -232,7 +238,7 @@ func (s *sinkProtocol) ReadHeaderOrReply() (interface{}, error) {
 
 		err = s.WriteReplyOK()
 		if err != nil {
-			return nil, fmt.Errorf("failed to write scp replyOK reply: err=%s", err)
+			return nil, fmt.Errorf("failed to write scp replyOK reply in msgStartDirectory: err=%s", err)
 		}
 
 		return h, nil
@@ -244,7 +250,7 @@ func (s *sinkProtocol) ReadHeaderOrReply() (interface{}, error) {
 
 		err = s.WriteReplyOK()
 		if err != nil {
-			return nil, fmt.Errorf("failed to write scp replyOK reply: err=%s", err)
+			return nil, fmt.Errorf("failed to write scp replyOK reply in msgEndDirectory: err=%s", err)
 		}
 
 		return endDirectoryMsgHeader{}, nil
@@ -263,7 +269,7 @@ func (s *sinkProtocol) ReadHeaderOrReply() (interface{}, error) {
 
 		err = s.WriteReplyOK()
 		if err != nil {
-			return nil, fmt.Errorf("failed to write scp replyOK reply: err=%s", err)
+			return nil, fmt.Errorf("failed to write scp replyOK reply in msgTime: err=%s", err)
 		}
 
 		h := timeMsgHeader{
@@ -283,7 +289,7 @@ func (s *sinkProtocol) ReadHeaderOrReply() (interface{}, error) {
 		if b == replyError {
 			err = s.WriteReplyOK()
 			if err != nil {
-				return nil, fmt.Errorf("failed to write scp replyOK reply: err=%s", err)
+				return nil, fmt.Errorf("failed to write scp replyOK reply in replyError: err=%s", err)
 			}
 		}
 
@@ -309,7 +315,7 @@ func (s *sinkProtocol) CopyFileBodyTo(h fileMsgHeader, w io.Writer) error {
 
 	err = s.WriteReplyOK()
 	if err != nil {
-		return fmt.Errorf("failed to write scp replyOK reply: err=%s", err)
+		return fmt.Errorf("failed to write scp replyOK reply in CopyFileBodyTo: err=%s", err)
 	}
 
 	return nil

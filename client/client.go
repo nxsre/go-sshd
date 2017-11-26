@@ -1,10 +1,8 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"net"
-	"os"
 
 	"github.com/soopsio/go-sshd/scp"
 	// "github.com/hnakamur/go-scp"
@@ -30,7 +28,7 @@ func SSH(user, password, ip_port string) {
 	}
 	defer client.Close()
 
-	log.Println("发送文件")
+	/* log.Println("发送文件")
 	if err := scp.NewSCP(client).SendFile("./test.sh", "/mnt"); err != nil {
 		log.Fatalln(err)
 	}
@@ -54,5 +52,10 @@ func SSH(user, password, ip_port string) {
 		}
 	}()
 	err = scp.NewSCP(client).ReceiveFile("/mnt/test.sh", "./test_1111.sh")
+	log.Println(err) */
+
+	log.Println("传输目录")
+	err = scp.NewSCP(client).SendDir("/tmp/a", "/tmp/b", nil)
 	log.Println(err)
+
 }

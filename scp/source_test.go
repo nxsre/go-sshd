@@ -61,10 +61,12 @@ func TestSendFile(t *testing.T) {
 			t.Fatalf("fail to generate local file; %s", err)
 		}
 
+		fmt.Println("##########", localPath, remotePath)
 		err = scp.NewSCP(c).SendFile(localPath, remotePath)
 		if err != nil {
 			t.Errorf("fail to CopyFileToRemote; %s", err)
 		}
+
 		sameFileInfoAndContent(t, remoteDir, localDir, remoteName, localName)
 	})
 
@@ -133,7 +135,8 @@ func TestSendDir(t *testing.T) {
 	defer s.Close()
 	go s.Serve(l)
 
-	c, err := newTestSshClient(l.Addr().String())
+	c, err := newTestSshClient("127.0.0.1:2222")
+	// c, err := newTestSshClient(l.Addr().String())
 	if err != nil {
 		t.Fatalf("fail to serve test sshd server; %s", err)
 	}
@@ -170,6 +173,7 @@ func TestSendDir(t *testing.T) {
 
 		remoteDestDir := filepath.Join(remoteDir, "dest")
 		err = scp.NewSCP(c).SendDir(localDir, remoteDestDir, nil)
+		time.Sleep(5 * time.Second)
 		if err != nil {
 			t.Errorf("fail to SendDir; %s", err)
 		}

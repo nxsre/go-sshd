@@ -18,7 +18,7 @@ func NewSshServer() *ssh.Server {
 			} else {
 				switch s.Command()[0] {
 				case "scp", "/usr/bin/scp":
-					scpconfig := initScpServer("/")
+					scpconfig := initScpServer("")
 					scpconfig.scpServerStart(s)
 				case "rsync":
 					rsyncStart(s)
