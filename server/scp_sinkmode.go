@@ -31,17 +31,12 @@ type controlMessage struct {
 
 // Generate a full path out of our basedir, the directories currently in the stack, and the target
 func (config scpConfig) generatePath(dirStack []string, target string) string {
-	fmt.Println("DIRSTACK:", dirStack)
-	fmt.Println("target:", target)
+
 	var fullPathList []string
 	fullPathList = append(fullPathList, config.Dir)
 	fullPathList = append(fullPathList, dirStack...)
 	fullPathList = append(fullPathList, target)
-	fmt.Println("fullPathList:", fullPathList)
-
 	path := filepath.Clean(filepath.Join(fullPathList...))
-	fmt.Println("path:", path)
-
 	return path
 }
 
@@ -59,7 +54,6 @@ func (c scpConfig) receiveFileContents(s ssh.Session, dirStack []string, msgctrl
 		return err
 	}
 	defer f.Close()
-	fmt.Println("msgctrl.size", msgctrl)
 	nread, err := io.CopyN(f, s, int64(msgctrl.size))
 	log.Printf("Transferred %d bytes", nread)
 	if err != nil {
@@ -83,6 +77,7 @@ func (c scpConfig) receiveFileContents(s ssh.Session, dirStack []string, msgctrl
 			return err
 		}
 	}
+	log.Println("1111111")
 
 	statusbuf := make([]byte, 1)
 	_, err = s.Read(statusbuf)
@@ -90,8 +85,9 @@ func (c scpConfig) receiveFileContents(s ssh.Session, dirStack []string, msgctrl
 		log.Printf("Getting status error after transfer: %v", err)
 		return err
 	}
-	fmt.Println("statusbuf:::", statusbuf)
 	sendSCPBinaryOK(s)
+	log.Println("2222222")
+
 	return err
 }
 
@@ -152,10 +148,11 @@ func (config scpConfig) startSCPSink(s ssh.Session, opts scpOptions) error {
 
 	var dirStack []string
 	if opts.TargetIsDir {
-		err := createDir(absTarget, controlMessage{mode: 0755})
-		if err != nil {
-			return err
-		}
+		// log.Println("aaaaaaaaa", dirStack)
+		// err := createDir(absTarget, controlMessage{mode: 0755})
+		// if err != nil {
+		// 	return err
+		// }
 		dirStack = append(dirStack, target)
 	}
 
@@ -185,26 +182,24 @@ func (config scpConfig) startSCPSink(s ssh.Session, opts scpOptions) error {
 		}
 		switch ctrlmsg.msgType {
 		case "D":
-			log.Println("创建目录", directoryExist(target), target, dirStack, ctrlmsg.name, opts.fileNames)
-			opts.TargetIsDir = true
-			// 判断目标地址是否存在，如果不存在则创建，并且设置 dirStack
-			if !directoryExist(target) {
+			if !directoryExist(target) && opts.TargetIsDir == true {
+				msg := fmt.Sprintf("scp: %s: No such file or directory", target)
+				sendErrorToClient(msg, s)
+				return errors.New(msg)
+			}
 
-				log.Println("创建目录111", dirStack, ctrlmsg.name, opts.fileNames)
+			// 如果目录不存在，且 opts.TargetIsDir 是 false, 则认为需要重命名为 target, 同时需要修改 ctrlmsg, 设置 dirStack
+			if !directoryExist(target) && opts.TargetIsDir == false {
 				dir, file := filepath.Split(target)
 				target = dir
 				ctrlmsg.name = file
-
-				err := createDir(target, ctrlmsg)
-				if err != nil {
-					return err
-				}
-
 				dirStack = append(dirStack, target)
+				opts.TargetIsDir = true
 			}
 			// TODO: Figure out how we need to behave in terms of permissions/times, etc
 			err := createDir(config.generatePath(dirStack, ctrlmsg.name), ctrlmsg)
 			if err != nil {
+				sendErrorToClient(err.Error(), s)
 				return err
 			}
 			dirStack = append(dirStack, ctrlmsg.name)
@@ -239,13 +234,11 @@ func (config scpConfig) startSCPSink(s ssh.Session, opts scpOptions) error {
 func receiveControlMsg(s ssh.Session) (controlMessage, error) {
 	ctrlmsg := controlMessage{}
 	bufios := bufio.NewReader(s)
-	ctrlmsgbuf, isp, err := bufios.ReadLine()
-	fmt.Println(ctrlmsgbuf, isp, err)
+	ctrlmsgbuf, _, err := bufios.ReadLine()
 	if err != nil {
 		// TODO: Maybe only return it upstream if it's an EOF, otherwise handle it?
 		return ctrlmsg, err
 	}
-	log.Println("ctrlmsgbuf:", ctrlmsgbuf)
 	ctrlmsg.msgType = string(ctrlmsgbuf[0])
 
 	ctrlmsglist := strings.Split(string(ctrlmsgbuf), " ")
@@ -286,7 +279,6 @@ func receiveControlMsg(s ssh.Session) (controlMessage, error) {
 		}
 		newCtrlmsg.mtime = ctrlmsg.mtime
 		newCtrlmsg.atime = ctrlmsg.atime
-		log.Println("AAAAAA:", newCtrlmsg, ctrlmsg)
 
 		return newCtrlmsg, nil
 	default:

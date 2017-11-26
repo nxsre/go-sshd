@@ -28,31 +28,31 @@ func SSH(user, password, ip_port string) {
 	}
 	defer client.Close()
 
-	/* log.Println("发送文件")
+	log.Println("发送文件")
 	if err := scp.NewSCP(client).SendFile("./test.sh", "/mnt"); err != nil {
 		log.Fatalln(err)
 	}
+	/*
+		log.Println("执行脚本")
+		func() {
+			if session, err := client.NewSession(); err == nil {
+				defer session.Close()
+				// SendRequest 用途参考
+				// https://github.com/golang/crypto/blob/master/ssh/session.go
+				// session.SendRequest("aaaa", false, []byte("bbbb"))
 
-	log.Println("执行脚本")
-	func() {
-		if session, err := client.NewSession(); err == nil {
-			defer session.Close()
-			// SendRequest 用途参考
-			// https://github.com/golang/crypto/blob/master/ssh/session.go
-			// session.SendRequest("aaaa", false, []byte("bbbb"))
+				session.Stdout = os.Stdout
+				session.Stdout = os.Stderr
+				fmt.Println("开始执行")
+				session.Run("bash /mnt/test.sh")
+				fmt.Println("执行完毕")
 
-			session.Stdout = os.Stdout
-			session.Stdout = os.Stderr
-			fmt.Println("开始执行")
-			session.Run("bash /mnt/test.sh")
-			fmt.Println("执行完毕")
-
-		} else {
-			log.Fatalln("获取 session 失败", err)
-		}
-	}()
-	err = scp.NewSCP(client).ReceiveFile("/mnt/test.sh", "./test_1111.sh")
-	log.Println(err) */
+			} else {
+				log.Fatalln("获取 session 失败", err)
+			}
+		}()
+		err = scp.NewSCP(client).ReceiveFile("/mnt/test.sh", "./test_1111.sh")
+		log.Println(err) */
 
 	log.Println("传输目录")
 	err = scp.NewSCP(client).SendDir("/tmp/a", "/tmp/b", nil)

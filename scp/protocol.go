@@ -102,11 +102,6 @@ func (s *sourceProtocol) writeFile(mode os.FileMode, length int64, filename stri
 		return fmt.Errorf("failed to write scp file body: err=%s", err)
 	}
 
-	err = s.readReply()
-	if err != nil {
-		return err
-	}
-
 	_, err = s.remIn.Write([]byte{replyOK})
 	if err != nil {
 		return fmt.Errorf("failed to write scp replyOK reply: err=%s", err)

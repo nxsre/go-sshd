@@ -172,8 +172,8 @@ func TestSendDir(t *testing.T) {
 		}
 
 		remoteDestDir := filepath.Join(remoteDir, "dest")
+
 		err = scp.NewSCP(c).SendDir(localDir, remoteDestDir, nil)
-		time.Sleep(5 * time.Second)
 		if err != nil {
 			t.Errorf("fail to SendDir; %s", err)
 		}
