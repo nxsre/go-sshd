@@ -185,27 +185,30 @@ func (config scpConfig) startSCPSink(s ssh.Session, opts scpOptions) error {
 		}
 		switch ctrlmsg.msgType {
 		case "D":
-			log.Println("创建目录", dirStack, ctrlmsg.name, opts.fileNames)
+			log.Println("创建目录", directoryExist(target), target, dirStack, ctrlmsg.name, opts.fileNames)
 			opts.TargetIsDir = true
 			// 判断目标地址是否存在，如果不存在则创建，并且设置 dirStack
 			if !directoryExist(target) {
+
+				log.Println("创建目录111", dirStack, ctrlmsg.name, opts.fileNames)
+				dir, file := filepath.Split(target)
+				target = dir
+				ctrlmsg.name = file
+
 				err := createDir(target, ctrlmsg)
 				if err != nil {
 					return err
 				}
-				dir, file := filepath.Split(target)
-				target = file
-				dirStack = append(dirStack, dir, file)
-				log.Printf("target dir stack is now: %v", dirStack)
-			} else {
-				// TODO: Figure out how we need to behave in terms of permissions/times, etc
-				err := createDir(config.generatePath(dirStack, ctrlmsg.name), ctrlmsg)
-				if err != nil {
-					return err
-				}
-				dirStack = append(dirStack, ctrlmsg.name)
-				log.Printf("wwwwww dir stack is now: %v", dirStack)
+
+				dirStack = append(dirStack, target)
 			}
+			// TODO: Figure out how we need to behave in terms of permissions/times, etc
+			err := createDir(config.generatePath(dirStack, ctrlmsg.name), ctrlmsg)
+			if err != nil {
+				return err
+			}
+			dirStack = append(dirStack, ctrlmsg.name)
+
 		case "E":
 			stackSize := len(dirStack)
 			if (opts.TargetIsDir && stackSize <= 1) || (!opts.TargetIsDir && stackSize <= 0) {
@@ -221,9 +224,7 @@ func (config scpConfig) startSCPSink(s ssh.Session, opts scpOptions) error {
 			} else {
 				filename = target
 			}
-			log.Println("创建文件", "dirStack", dirStack, "ctrlmsg.name", ctrlmsg.name, "opts.fileNames", opts.fileNames, "filename", filename)
 			err := config.receiveFileContents(s, dirStack, ctrlmsg, filename, opts.PreserveMode)
-			fmt.Println("AAAAAAAAAAAa", err)
 			if err != nil {
 				sendErrorToClient(err.Error(), s)
 				return err
