@@ -1,0 +1,40 @@
+project_name: go-sshd
+release:
+  github:
+    owner: soopsio
+    name: go-sshd
+  name_template: '{{.Tag}}'
+brew:
+  commit_author:
+    name: goreleaserbot
+    email: goreleaser@carlosbecker.com
+  install: bin.install "go-sshd"
+builds:
+- goos:
+  - linux
+  - darwin
+  goarch:
+  - amd64
+  main: .
+  ldflags: -s -w -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{.Date}}
+  binary: go-sshd
+archive:
+  format: tar.gz
+  name_template: '{{ .Binary }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}{{ if .Arm }}v{{
+    .Arm }}{{ end }}'
+  files:
+  - licence*
+  - LICENCE*
+  - license*
+  - LICENSE*
+  - readme*
+  - README*
+  - changelog*
+  - CHANGELOG*
+fpm:
+  bindir: /usr/local/bin
+snapshot:
+  name_template: SNAPSHOT-{{ .Commit }}
+checksum:
+  name_template: '{{ .ProjectName }}_{{ .Version }}_checksums.txt'
+dist: dist
