@@ -3,7 +3,9 @@ package server
 import (
 	"bufio"
 	"io"
-	"log"
+
+	"github.com/soopsio/zlog/tools"
+	"go.uber.org/zap"
 
 	"github.com/soopsio/ssh"
 )
@@ -13,29 +15,10 @@ func ProcessOutput(s ssh.Session, r io.Reader) {
 
 	scanner := bufio.NewScanner(r)
 	for scanner.Scan() {
-		log.Println("output:", s.RemoteAddr(), scanner.Text())
+		logger.Info(tools.StripCtlAndExtFromBytes(tools.StripAnsiColor(scanner.Text())), zap.Any("remoteaddr", s.RemoteAddr()), zap.String("username", s.User()))
 	}
 
 	if scanner.Err() == io.ErrClosedPipe {
 		return
 	}
-
-	log.Println(scanner.Err())
-
-	// reader := bufio.NewReader(r)
-	/* go func() {
-		buf := make([]byte, 0, 1024)
-		for {
-			l, p, err := reader.ReadLine()
-			if len(l) > 0 {
-				fmt.Printf("#ReadData|%d|%b|%s \n", len(l), p, l)
-			}
-			if err != nil {
-				if err != io.ErrClosedPipe {
-					log.Println(err)
-				}
-				break
-			}
-		}
-	}() */
 }

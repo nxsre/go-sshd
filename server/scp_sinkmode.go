@@ -77,7 +77,6 @@ func (c scpConfig) receiveFileContents(s ssh.Session, dirStack []string, msgctrl
 			return err
 		}
 	}
-	log.Println("1111111")
 
 	statusbuf := make([]byte, 1)
 	_, err = s.Read(statusbuf)
@@ -86,7 +85,6 @@ func (c scpConfig) receiveFileContents(s ssh.Session, dirStack []string, msgctrl
 		return err
 	}
 	sendSCPBinaryOK(s)
-	log.Println("2222222")
 
 	return err
 }
@@ -103,6 +101,14 @@ func createDir(target string, ctrlmsg controlMessage) error {
 		} else {
 			log.Printf("%v", err)
 			return err
+		}
+	}
+	os.Chmod(target, ctrlmsg.mode)
+	// change both atime and mtime to currenttime
+	if ctrlmsg.mtime != 0 {
+		err = os.Chtimes(target, time.Unix(ctrlmsg.atime, 0), time.Unix(ctrlmsg.mtime, 0))
+		if err != nil {
+			fmt.Println(err)
 		}
 	}
 	return nil

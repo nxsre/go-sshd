@@ -3,15 +3,16 @@ package server
 import (
 	"context"
 	"io"
-	"log"
 	"os/exec"
 	"syscall"
+
+	"go.uber.org/zap"
 
 	"github.com/soopsio/ssh"
 )
 
 func cmdStart(s ssh.Session) {
-	log.Println("no pty:", s.Command())
+	logger.Info("no pty:", zap.Strings("commands", s.Command()))
 	// cmd := exec.Command(s.Command()[0], s.Command()[1:]...)
 	ctx, cancel := context.WithCancel(context.Background())
 	cmd := exec.CommandContext(ctx, s.Command()[0], s.Command()[1:]...)

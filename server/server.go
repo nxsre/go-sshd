@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 
+	"github.com/soopsio/nkill"
 	"github.com/soopsio/ssh"
 )
 
@@ -39,7 +40,7 @@ func NewSshServer() *ssh.Server {
 
 		return net
 	}
-
+	nkill.KillPort(2222)
 	return &ssh.Server{
 		Addr:            ":2222",
 		Handler:         sshHandler,
