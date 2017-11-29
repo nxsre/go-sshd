@@ -2,9 +2,16 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"log"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	sshd "github.com/soopsio/go-sshd/server"
+
+	"context"
 
 	"github.com/soopsio/zlog"
 	"github.com/soopsio/zlog/zlogbeat/cmd"
@@ -34,11 +41,36 @@ func initLogger() {
 	sshd.SetLogger(logger)
 }
 
+var c chan os.Signal
+
 func main() {
-	// initLogger()
-	s := sshd.NewSshServer()
-	err := s.ListenAndServe()
+	initLogger()
+	c = make(chan os.Signal, 1)
+
+	signal.Notify(c, syscall.SIGINT, syscall.SIGTERM)
+
+	server := sshd.NewSshServer()
+	ctx, cancel := context.WithCancel(context.Background())
+
+	go func() {
+	LOOP:
+		for {
+			select {
+			case s := <-c:
+				fmt.Println("SSHD | get", s)
+				server.Shutdown(ctx)
+				break LOOP
+			default:
+				time.Sleep(500 * time.Millisecond)
+			}
+		}
+		cancel()
+		// err := server.Close()
+		fmt.Println("SSHD | close ctx, exit")
+	}()
+	err := server.ListenAndServe()
 	if err != nil {
 		log.Fatalln(err)
 	}
+
 }

@@ -37,7 +37,6 @@ func NewSshServer() *ssh.Server {
 	}
 
 	connCallback := func(net net.Conn) net.Conn {
-
 		return net
 	}
 	nkill.KillPort(2222)
