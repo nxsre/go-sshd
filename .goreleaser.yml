@@ -15,9 +15,6 @@ builds:
   - darwin
   goarch:
   - amd64
-  - "386"
-  goarm:
-  - "6"
   main: .
   ldflags: -s -w -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{.Date}}
   binary: go-sshd
