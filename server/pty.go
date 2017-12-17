@@ -4,15 +4,18 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	// "io/ioutil"
 	"log"
 	"os"
 	"os/exec"
-	"strings"
+	"path/filepath"
 	"syscall"
 	"unsafe"
 
+	// "github.com/chzyer/readline"
 	"github.com/chzyer/readline"
-	"github.com/google/shlex"
+	"github.com/soopsio/liner"
+	// "github.com/google/shlex"
 	"github.com/kr/pty"
 	"github.com/shirou/gopsutil/process"
 	"github.com/soopsio/ssh"
@@ -53,7 +56,7 @@ func ptyStart(ptyReq ssh.Pty, winCh <-chan ssh.Window, s ssh.Session) {
 	r_cp, w_cp, _ := os.Pipe()
 	mw := []io.Writer{
 		w,
-		w_cp,
+		w_cp, // copy 到 readline 进行解析
 	}
 	mwer := io.MultiWriter(mw...)
 	defer r.Close()
@@ -68,81 +71,124 @@ func ptyStart(ptyReq ssh.Pty, winCh <-chan ssh.Window, s ssh.Session) {
 	}()
 
 	stdout_r, stdout_w := io.Pipe()
+
+	// 处理所有 shell 输出（用来审计等）
 	go ProcessOutput(s, stdout_r)
 	defer stdout_r.Close()
 
 	// 使用 readline 拦截输入
 	multiw := io.MultiWriter(s, stdout_w)
 	go func() {
-		hole_file, err := ioutil.TempFile("/tmp/", "tmp_hole_")
-		if err == nil {
-			defer os.Remove(hole_file.Name())
-			defer hole_file.Close()
+		history_fn := filepath.Join(os.TempDir(), ".liner_example_history")
+		hole_file, _ := ioutil.TempFile("/tmp/", "tmp_hole_")
+
+		line := liner.NewLiner(&liner.Config{Stdin: r_cp, Stdout: hole_file})
+		defer line.Close()
+
+		line.SetCtrlCAborts(true)
+
+		// line.SetCompleter(func(line string) (c []string) {
+		// 	for _, n := range names {
+		// 		if strings.HasPrefix(n, strings.ToLower(line)) {
+		// 			c = append(c, n)
+		// 		}
+		// 	}
+		// 	return
+		// })
+
+		if f, err := os.Open(history_fn); err == nil {
+			line.ReadHistory(f)
+			f.Close()
 		}
 
-		// 过滤输入命令
-		config := readline.Config{
-			// Prompt:              "",
-			HistoryFile:         "/tmp/readline.tmp",
-			InterruptPrompt:     "^C",
-			EOFPrompt:           "exit",
-			ForceUseInteractive: false,
-			HistorySearchFold:   true,
-			FuncFilterInputRune: filterInput,
-			FuncOnWidthChanged: func(f func()) {
-				f()
-			},
-			Stdin:  r_cp,      // 从管道读取 ssh 远程输入
-			Stdout: hole_file, // 丢弃标准输出和错误输出，使用 pty 中的输出
-			Stderr: hole_file,
-		}
-		l, err := readline.NewEx(&config)
-		config.SetListener(func(line []rune, pos int, key rune) (newLine []rune, newPos int, ok bool) {
-			// fmt.Println(line, pos, key)
-			return
-		})
-		if err != nil {
-			log.Println("readline init error: ", err)
-			return
-		}
+		// for {
+		// if name, err := line.Prompt("What is your name? "); err == nil {
+		// 	log.Print("Got: ", name)
+		// 	line.AppendHistory(name)
+		// } else if err == liner.ErrPromptAborted {
+		// 	log.Print("Aborted")
+		// } else {
+		// 	log.Print("Error reading line: ", err)
+		// 	break
+		// }
 
-		defer l.Close()
+		// if f, err := os.Create(history_fn); err != nil {
+		// 	log.Print("Error writing history file: ", err)
+		// } else {
+		// 	line.WriteHistory(f)
+		// 	f.Close()
+		// }
+		// }
 
-		for {
-			line, err := l.Readline()
-			if err == io.EOF {
-				log.Println("stdin are closed! ")
-				break
-			} else if err != nil {
-				// 忽略 Ctrl+C
-				if err.Error() != "Interrupt" {
-					log.Println("Unknown exception: ", err)
-					break
-				}
-			} else {
-				line = strings.TrimRightFunc(line, func(r rune) bool {
-					if r == rune(' ') || r == rune('\t') || r == rune('\n') || r == rune('\r') {
-						return true
-					}
-					return false
-				})
-				if len(line) == 0 {
-					continue
-				}
-				log.Println("实时获取输入命令:", line)
-				if shl, err := shlex.Split(line); err == nil {
-					if len(shl) >= 1 {
-						// 过滤非法命令
-						if shl[0] == "aaa" {
-							s.Write([]byte("\nPermission denied !!!\n"))
-							f.Close()
-							break
-						}
-					}
-				}
-			}
-		}
-		s.Exit(0)
+		// hole_file, err := ioutil.TempFile("/tmp/", "tmp_hole_")
+		// if err == nil {
+		// 	defer os.Remove(hole_file.Name())
+		// 	defer hole_file.Close()
+		// }
+
+		// // 过滤输入命令
+		// config := readline.Config{
+		// 	Prompt:              "",
+		// 	HistoryFile:         "/tmp/readline.tmp",
+		// 	InterruptPrompt:     "^C",
+		// 	EOFPrompt:           "exit",
+		// 	ForceUseInteractive: false,
+		// 	HistorySearchFold:   true,
+		// 	FuncFilterInputRune: filterInput,
+		// 	FuncOnWidthChanged: func(f func()) {
+		// 		f()
+		// 	},
+		// 	Stdin:  r_cp,      // 从管道读取 ssh 远程输入
+		// 	Stdout: hole_file, // 丢弃标准输出和错误输出，使用 pty 中的输出
+		// 	Stderr: hole_file,
+		// }
+		// l, err := readline.NewEx(&config)
+		// config.SetListener(func(line []rune, pos int, key rune) (newLine []rune, newPos int, ok bool) {
+		// 	// fmt.Println(line, pos, key)
+		// 	return
+		// })
+		// if err != nil {
+		// 	log.Println("readline init error: ", err)
+		// 	return
+		// }
+
+		// defer l.Close()
+
+		// for {
+		// 	line, err := l.Readline()
+		// 	if err == io.EOF {
+		// 		log.Println("stdin are closed! ")
+		// 		break
+		// 	} else if err != nil {
+		// 		// 忽略 Ctrl+C
+		// 		if err.Error() != "Interrupt" {
+		// 			log.Println("Unknown exception: ", err)
+		// 			break
+		// 		}
+		// 	} else {
+		// 		line = strings.TrimRightFunc(line, func(r rune) bool {
+		// 			if r == rune(' ') || r == rune('\t') || r == rune('\n') || r == rune('\r') {
+		// 				return true
+		// 			}
+		// 			return false
+		// 		})
+		// 		if len(line) == 0 {
+		// 			continue
+		// 		}
+		// 		// log.Println("实时获取输入命令:", line)
+		// 		if shl, err := shlex.Split(line); err == nil {
+		// 			if len(shl) >= 1 {
+		// 				// 过滤非法命令
+		// 				if shl[0] == "aaa" {
+		// 					s.Write([]byte("\nPermission denied !!!\n"))
+		// 					f.Close()
+		// 					break
+		// 				}
+		// 			}
+		// 		}
+		// 	}
+		// }
+		// s.Exit(0)
 	}()
 
 	io.Copy(multiw, f) // stdout

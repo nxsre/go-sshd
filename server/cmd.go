@@ -17,7 +17,7 @@ func cmdStart(s ssh.Session) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cmd := exec.CommandContext(ctx, s.Command()[0], s.Command()[1:]...)
 	// 端开连接时调用 cancel 退出 cmd, 然后等待 cmd 退出, 避免造成 defunct 进程
-	defer cmd.Wait()
+	// defer cmd.Wait()
 	defer cancel()
 
 	stdout_r, stdout_w := io.Pipe()
@@ -26,15 +26,22 @@ func cmdStart(s ssh.Session) {
 	mwer := io.MultiWriter(stdout_w, s)
 	cmd.Stdout = mwer
 	cmd.Stderr = mwer
-	err := cmd.Run()
+	err := cmd.Start()
 	if err != nil {
 		io.WriteString(s, err.Error())
 	}
+
+	processState, err := cmd.Process.Wait()
+	if err != nil {
+		io.WriteString(s, err.Error())
+	}
+
 	var exitCode int
-	if cmd != nil && cmd.ProcessState.Exited() {
-		if waitStatus, ok := cmd.ProcessState.Sys().(syscall.WaitStatus); ok {
+	if processState != nil && processState.Exited() {
+		if waitStatus, ok := processState.Sys().(syscall.WaitStatus); ok {
 			exitCode = int(waitStatus.ExitStatus())
 		}
 	}
 	s.Exit(exitCode)
+	s.Close()
 }

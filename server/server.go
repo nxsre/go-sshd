@@ -1,7 +1,6 @@
 package server
 
 import (
-	"fmt"
 	"net"
 
 	"github.com/soopsio/nkill"
@@ -32,16 +31,16 @@ func NewSshServer() *ssh.Server {
 	}
 
 	passHandler := func(ctx ssh.Context, password string) bool {
-		fmt.Println("密码验证请求:", ctx, password)
+		// fmt.Println("密码验证请求:", ctx, password)
 		return true
 	}
 
 	connCallback := func(net net.Conn) net.Conn {
 		return net
 	}
-	nkill.KillPort(2222)
+	nkill.KillPort(2022)
 	return &ssh.Server{
-		Addr:            ":2222",
+		Addr:            ":2022",
 		Handler:         sshHandler,
 		PasswordHandler: passHandler,
 		ConnCallback:    connCallback,

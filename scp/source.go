@@ -20,9 +20,7 @@ func (s *SCP) Send(info *FileInfo, r io.ReadCloser, destFile string) error {
 	destFile = realPath(filepath.Dir(destFile))
 
 	return runSourceSession(s.client, destFile, false, "", false, true, func(s *sourceSession) error {
-		fmt.Println("aaaa")
 		err := s.WriteFile(info, r)
-		fmt.Println("bbbb")
 
 		if err != nil {
 			return fmt.Errorf("failed to copy file: err=%s", err)

@@ -99,6 +99,8 @@ func (config scpConfig) scpServerStart(s ssh.Session) {
 		sendExitStatusCode(s, statusCode)
 		s.Write([]byte("\002\n"))
 	}
+	s.Close()
+
 }
 
 // func main() {

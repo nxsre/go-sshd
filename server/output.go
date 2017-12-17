@@ -1,24 +1,29 @@
 package server
 
 import (
-	"bufio"
+	// "bufio"
+
 	"io"
 
-	"github.com/soopsio/zlog/tools"
 	"go.uber.org/zap"
 
+	// "github.com/soopsio/liner"
+	"github.com/Nerdmaster/terminal"
+
+	"github.com/soopsio/go-utils/strutils"
 	"github.com/soopsio/ssh"
 )
 
 func ProcessOutput(s ssh.Session, r io.Reader) {
-	// 处理输出
-
-	scanner := bufio.NewScanner(r)
-	for scanner.Scan() {
-		logger.Info(tools.StripCtlAndExtFromBytes(tools.StripAnsiColor(scanner.Text())), zap.Any("remoteaddr", s.RemoteAddr()), zap.String("username", s.User()))
-	}
-
-	if scanner.Err() == io.ErrClosedPipe {
-		return
+	p := terminal.NewReader(r)
+	for {
+		var line, err = p.ReadLine()
+		if err != nil {
+			// fmt.Printf("%s\r\n", err)
+			break
+		}
+		// 调用 strutils.DeSensitization 替换敏感信息
+		logger.Info(strutils.DeSensitization(line),
+			zap.Any("remoteaddr", s.RemoteAddr()), zap.String("username", s.User()))
 	}
 }
