@@ -12,7 +12,7 @@ import (
 )
 
 func cmdStart(s ssh.Session) {
-	logger.Info("no pty:", zap.Strings("commands", s.CommandRaw()))
+	logger.Info("no pty:", zap.String("command", s.CommandRaw()))
 	// cmd := exec.Command(s.Command()[0], s.Command()[1:]...)
 	ctx, cancel := context.WithCancel(context.Background())
 	// cmd := exec.CommandContext(ctx, s.Command()[0], s.Command()[1:]...)
@@ -54,5 +54,5 @@ func cmdStart(s ssh.Session) {
 	}
 	s.Exit(exitCode)
 	s.Close()
-	logger.Info("no pty cmd over:", zap.Strings("commands", s.CommandRaw()))
+	logger.Info("no pty cmd over:", zap.String("commands", s.CommandRaw()))
 }
