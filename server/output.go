@@ -9,8 +9,7 @@ import (
 
 	// "github.com/soopsio/liner"
 	"github.com/Nerdmaster/terminal"
-
-	"github.com/soopsio/go-utils/strutils"
+	// "github.com/soopsio/go-utils/strutils"
 	"github.com/soopsio/ssh"
 )
 
@@ -23,7 +22,10 @@ func ProcessOutput(s ssh.Session, r io.Reader) {
 			break
 		}
 		// 调用 strutils.DeSensitization 替换敏感信息
-		logger.Info(strutils.DeSensitization(line),
+		// logger.Info(strutils.DeSensitization(line),
+		// 	zap.Any("remoteaddr", s.RemoteAddr()), zap.String("username", s.User()))
+
+		logger.Info(line,
 			zap.Any("remoteaddr", s.RemoteAddr()), zap.String("username", s.User()))
 	}
 }
